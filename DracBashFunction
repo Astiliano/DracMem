@@ -1,0 +1,62 @@
+function drac { 
+unset power
+unset list
+unset password
+
+echo -n Drac Password to use: 
+read -s password
+echo -e "\nPassword Recorded -- Running\n"
+echo "" > out
+list=
+case $1 in
+  -f|--f|F|-F|--F)
+    shift
+    echo "Using File: $1"
+    list=$(cat $1)
+  ;;
+  *)
+    for host in "$(echo "$@")"
+      do list+=$host
+    done
+  ;;
+esac
+
+echo -e "Host#: $(echo $list | wc -w)\n" | tee -a out
+
+for host in $list;do
+ping -n 1 $host > /dev/null 2>&1
+if [ $? -eq 0 ]
+  then
+  pwrstatus=$(sshpass -p$password ssh -o StrictHostKeyChecking=no root@$host 'racadm serveraction powerstatus')
+    if [ "$(echo "$pwrstatus" | awk '{print $4}')" = "OFF" ]
+    then
+	  read -p "$host Is powered off, power on?[y/n]: " power
+	    case $power in
+		  Y|y|YES|yes|Yes)
+		    echo "$host - Is powered off, powering ON" | tee -a out
+            sshpass -p$password ssh -o StrictHostKeyChecking=no root@$host 'racadm serveraction powerup'
+			;;
+		  N|n|NO|no|No)
+		    echo "$host - Is powered off, leaving OFF" | tee -a out
+			;;
+	      *)
+		    echo "$host - Is powered off, leaving OFF" | tee -a out
+			;;
+	    esac
+    else
+      mem=$(sshpass -p$password ssh -o StrictHostKeyChecking=no root@$host 'racadm get BIOS.MemSettings.SysMemSize' | tail -1 )
+        if [ "$(echo "$mem" | grep "racadm help")" != "" ]
+        then
+          echo "$host - Drac issue - resetting" | tee -a out
+          sshpass -p$password ssh -o StrictHostKeyChecking=no root@$host 'racadm racreset soft'
+        else
+          echo "$host -- $mem" | tee -a out
+        fi
+    fi
+else
+echo "$host - Host not accessible"
+fi
+done
+echo -e "\n ::: Complete - Full List Below ( Stored in File: out ) :::\n"
+cat out
+}
