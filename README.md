@@ -23,6 +23,4 @@ will output to file called "out"
 
 Need to change:
 
-  unset all 
-  
   file output prompt + prompt file name (tee -a drac.$file)
