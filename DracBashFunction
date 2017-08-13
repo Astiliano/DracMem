@@ -54,9 +54,14 @@ if [ $? -eq 0 ]
         fi
     fi
 else
-echo "$host - Host not accessible"
+  echo "$host - Host not accessible"
 fi
+
 done
 echo -e "\n ::: Complete - Full List Below ( Stored in File: out ) :::\n"
 cat out
+unset power
+unset list
+unset password
+
 }
